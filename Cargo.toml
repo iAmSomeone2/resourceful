@@ -1,5 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["resourceful"]
-default-members = ["resourceful"]
+members = ["core", "resourceful", "macros"]
+default-members = ["core"]
 
+[workspace.dependencies]
+resourceful_core = { path = "core" }
+resourceful_macros = { path = "macros" }

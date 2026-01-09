@@ -1,15 +1,15 @@
 [package]
-name = "resourceful"
+name = "resourceful_core"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.92"
 
 authors = ["Brenden Davidson <brenden@bdavidson.dev>"]
-description = "A library for limited resource management"
+description = "Resourceful's core features"
 readme = "../README.md"
 repository = "https://github.com/iAmSomeone2/resourceful"
 license = "LGPL-2.1-only"
-keywords = ["resources"]
+keywords = ["resources", "resource", "budget"]
 categories = ["data-structures"]
 
 [dependencies]

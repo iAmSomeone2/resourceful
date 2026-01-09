@@ -21,5 +21,20 @@ dependencies = [
 name = "resourceful"
 version = "0.1.0"
 dependencies = [
+ "resourceful_core",
+ "resourceful_macros",
+]
+
+[[package]]
+name = "resourceful_core"
+version = "0.1.0"
+dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "resourceful_macros"
+version = "0.1.0"
+dependencies = [
+ "resourceful_core",
 ]
