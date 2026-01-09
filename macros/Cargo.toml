@@ -1,0 +1,15 @@
+[package]
+name = "resourceful_macros"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["Brenden Davidson <brenden@bdavidson.dev>"]
+description = "A library for limited resource management"
+readme = "../README.md"
+repository = "https://github.com/iAmSomeone2/resourceful"
+license = "LGPL-2.1-only"
+keywords = ["resources", "resource", "budget", "macro"]
+categories = ["data-structures"]
+
+[dependencies]
+resourceful_core = { workspace = true }
