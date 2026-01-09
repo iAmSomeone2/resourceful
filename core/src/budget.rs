@@ -118,7 +118,7 @@ impl<T> BudgetValue for T where
 }
 
 /// Trait defining the expected behavior of a budgeting-capable object
-pub trait Budget: Sized {
+pub trait Budget {
     /// Type which publicly represents the budget's storage.
     ///
     /// # Implementation Notes
@@ -141,7 +141,18 @@ pub trait Budget: Sized {
     /// Sets the remaining value of the [Budget] to a specific amount.
     fn set(&self, value: Self::Value);
 
+    /// Caps the input value to `self.max()`
+    #[inline]
+    fn cap_value(&self, value: Self::Value) -> Self::Value {
+        if value > self.max() {
+            self.max()
+        } else {
+            value
+        }
+    }
+
     /// Returns `true` if the [Budget] has been depleted.
+    #[inline]
     fn is_empty(&self) -> bool {
         self.remaining() == Self::Value::ZERO
     }
@@ -164,6 +175,7 @@ pub trait Budget: Sized {
     /// // The budget is full again after all allocations are dropped.
     /// assert!(budget.is_full());
     /// ```
+    #[inline]
     fn is_full(&self) -> bool {
         self.remaining() >= self.max()
     }
@@ -179,6 +191,7 @@ pub trait Budget: Sized {
     /// assert!(budget.has_capacity(50));
     /// assert!(!budget.has_capacity(150));
     /// ```
+    #[inline]
     fn has_capacity(&self, amount: Self::Value) -> bool {
         self.remaining() >= amount
     }
@@ -210,7 +223,10 @@ pub trait Budget: Sized {
     /// drop(good_alloc)
     /// ```
     #[must_use = "if the returned allocation is not used, the budget's capacity will not be updated"]
-    fn allocate(&'_ self, amount: Self::Value) -> Option<Allocation<'_, Self::Value, Self>> {
+    fn allocate(&'_ self, amount: Self::Value) -> Option<Allocation<'_, Self::Value, Self>>
+    where
+        Self: Sized,
+    {
         if !self.has_capacity(amount) {
             return None;
         }
@@ -230,7 +246,10 @@ pub trait Budget: Sized {
     /// This function is only intended to be called by the [Allocation] structure's [Drop]
     /// implementation. Using it in any other context will make it difficult to consistently
     /// maintain the [Budget]'s state.
-    fn free(&self, allocation: &Allocation<'_, Self::Value, Self>) {
+    fn free(&self, allocation: &Allocation<'_, Self::Value, Self>)
+    where
+        Self: Sized,
+    {
         let amount = allocation.amount();
         let new_value = self.remaining().saturating_add(&amount);
         self.set(new_value);
@@ -285,11 +304,7 @@ impl<N: BudgetValue> Budget for SyncBudget<N> {
     }
 
     fn set(&self, value: Self::Value) {
-        let value = if value > self.max_alloc {
-            self.max_alloc
-        } else {
-            value
-        };
+        let value = self.cap_value(value);
         self.value.set(value);
     }
 }
@@ -325,11 +340,7 @@ impl Budget for AtomicBudget {
     }
 
     fn set(&self, value: Self::Value) {
-        let value = if value > self.max_alloc {
-            self.max_alloc
-        } else {
-            value
-        };
+        let value = self.cap_value(value);
         self.value
             .store(value, std::sync::atomic::Ordering::Release);
     }
@@ -386,6 +397,9 @@ mod tests {
         let good_alloc = budget.allocate(amount_0).expect("First allocation failed");
         assert_eq!(good_alloc.amount(), amount_0);
 
+        // Verify that the previous allocation hasn't fully depleted the budget
+        assert!(!budget.is_empty());
+
         // This allocation should fail since it will exceed the remaining available capacity
         let bad_alloc = budget.allocate(amount_1);
         assert!(bad_alloc.is_none());
@@ -401,6 +415,13 @@ mod tests {
         */
         let good_alloc = budget.allocate(amount_1).expect("Second allocation failed");
         assert_eq!(good_alloc.amount(), amount_1);
+    }
+
+    #[test]
+    fn test_overfill_budget() {
+        let budget = SyncBudget::new(100u32);
+        budget.set(300);
+        assert_eq!(budget.remaining(), 100);
     }
 
     #[test]
